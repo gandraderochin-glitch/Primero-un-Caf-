@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NutriLens</title>
+<style>
+  :root{
+    --paper:#FAF8F2;
+    --ink:#1A1A17;
+    --line:#1A1A17;
+    --good:#1F5C3D;
+    --warn:#B4791A;
+    --bad:#A8341F;
+    --muted:#8A8578;
+    --card:#FFFFFF;
+    --accent:#1F5C3D;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--paper); color:var(--ink);
+    font-family:'Helvetica Neue',Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .num{font-family:'Arial Narrow',Arial,sans-serif; font-weight:800; letter-spacing:-0.5px;}
+  #app{max-width:480px; margin:0 auto; min-height:100vh; padding-bottom:90px; position:relative;}
+
+  /* ---- Onboarding ---- */
+  .onb{padding:28px 20px;}
+  .onb h1{font-size:26px; margin:0 0 4px; letter-spacing:-0.5px;}
+  .onb .sub{color:var(--muted); font-size:13px; margin-bottom:24px;}
+  .field{margin-bottom:16px;}
+  .field label{display:block; font-size:11px; text-transform:uppercase; letter-spacing:1px; color:var(--muted); margin-bottom:6px; font-weight:700;}
+  .field input, .field select{
+    width:100%; padding:12px; border:2px solid var(--line); border-radius:0;
+    background:var(--card); font-size:15px; color:var(--ink);
+  }
+  .row2{display:flex; gap:12px;}
+  .row2 .field{flex:1;}
+  .btn{
+    display:block; width:100%; padding:14px; background:var(--ink); color:var(--paper);
+    border:none; font-size:14px; font-weight:700; letter-spacing:0.5px; text-transform:uppercase;
+    cursor:pointer; border-radius:0; margin-top:8px;
+  }
+  .btn:active{opacity:0.8;}
+  .btn.outline{background:transparent; color:var(--ink); border:2px solid var(--ink);}
+  .seg{display:flex; border:2px solid var(--line); overflow:hidden;}
+  .seg button{flex:1; padding:10px 4px; background:var(--card); border:none; font-size:12px; font-weight:700; cursor:pointer; border-right:2px solid var(--line);}
+  .seg button:last-child{border-right:none;}
+  .seg button.active{background:var(--ink); color:var(--paper);}
+
+  /* ---- Header / label style ---- */
+  .label-panel{
+    background:var(--card); border:4px solid var(--ink); margin:14px 16px; padding:0;
+  }
+  .label-title{padding:10px 14px 4px; font-size:22px; font-weight:900; border-bottom:8px solid var(--ink); letter-spacing:-0.5px;}
+  .label-sub{padding:4px 14px; font-size:11px; border-bottom:1px solid var(--line); color:var(--muted); font-weight:700; text-transform:uppercase; letter-spacing:0.5px;}
+  .label-row{display:flex; justify-content:space-between; align-items:baseline; padding:6px 14px; border-bottom:1px solid var(--line); font-size:13px;}
+  .label-row.thick{border-bottom:4px solid var(--ink); padding-bottom:8px;}
+  .label-row .name{font-weight:700;}
+  .label-row .val{font-weight:800; font-size:15px;}
+  .label-row.sub-item{padding-left:26px; font-size:12.5px; color:#333;}
+  .bar-mini{height:5px; background:#eee; margin-top:3px; position:relative;}
+  .bar-mini i{position:absolute; left:0; top:0; bottom:0; background:var(--accent); display:block;}
+  .bar-mini.over i{background:var(--bad);}
+
+  .topbar{display:flex; justify-content:space-between; align-items:center; padding:16px 16px 0;}
+  .topbar h1{font-size:20px; margin:0; letter-spacing:-0.5px;}
+  .topbar .date{font-size:12px; color:var(--muted); font-weight:700;}
+  .iconbtn{background:none; border:none; font-size:20px; cursor:pointer;}
+
+  /* ---- Log list ---- */
+  .log{margin:18px 16px;}
+  .log h2{font-size:13px; text-transform:uppercase; letter-spacing:1px; color:var(--muted); margin:0 0 10px;}
+  .entry{display:flex; justify-content:space-between; align-items:center; background:var(--card); border:1px solid #ddd; border-left:4px solid var(--accent); padding:10px 12px; margin-bottom:8px;}
+  .entry .info .n{font-weight:700; font-size:14px;}
+  .entry .info .p{font-size:11px; color:var(--muted);}
+  .entry .kcal{font-weight:800; font-size:15px;}
+  .entry .del{background:none; border:none; color:var(--muted); font-size:16px; cursor:pointer; margin-left:8px;}
+  .empty{text-align:center; color:var(--muted); font-size:13px; padding:30px 10px; border:1px dashed #ccc;}
+
+  .alert-box{margin:0 16px 16px; padding:12px 14px; border:2px solid var(--warn); background:#FFF8EC; font-size:13px; display:none;}
+  .alert-box.show{display:block;}
+  .alert-box b{display:block; font-size:11px; text-transform:uppercase; color:var(--warn); margin-bottom:4px;}
+
+  .fab{
+    position:fixed; bottom:24px; left:50%; transform:translateX(-50%);
+    width:64px; height:64px; border-radius:50%; background:var(--ink); color:var(--paper);
+    border:none; font-size:30px; cursor:pointer; box-shadow:0 4px 14px rgba(0,0,0,0.3);
+    max-width:480px;
+  }
+
+  /* ---- Modal ---- */
+  .overlay{position:fixed; inset:0; background:rgba(0,0,0,0.5); display:none; align-items:flex-end; justify-content:center; z-index:50;}
+  .overlay.show{display:flex;}
+  .sheet{background:var(--paper); width:100%; max-width:480px; border-radius:16px 16px 0 0; padding:18px 18px 26px; max-height:88vh; overflow-y:auto;}
+  .sheet h2{margin:0 0 14px; font-size:18px;}
+  .close-x{float:right; background:none; border:none; font-size:20px; cursor:pointer;}
+  .tabbar{display:flex; margin-bottom:16px; border-bottom:2px solid var(--line);}
+  .tabbar div{flex:1; text-align:center; padding:10px; font-size:13px; font-weight:700; cursor:pointer; color:var(--muted);}
+  .tabbar div.active{color:var(--ink); border-bottom:3px solid var(--ink); margin-bottom:-2px;}
+  .pane{display:none;}
+  .pane.active{display:block;}
+  .preview{width:100%; max-height:220px; object-fit:cover; margin-bottom:10px; display:none; border:2px solid var(--line);}
+  .option-card{border:2px solid var(--line); padding:10px 12px; margin-bottom:8px; cursor:pointer;}
+  .option-card:active{background:#f0f0e8;}
+  .option-card .n{font-weight:700; font-size:14px;}
+  .option-card .p{font-size:11px; color:var(--muted); margin-bottom:4px;}
+  .option-card .k{font-size:12px; color:#333;}
+  .loading{text-align:center; padding:20px; font-size:13px; color:var(--muted);}
+  .loading::after{content:'⏳'; display:block; font-size:22px; margin-bottom:6px;}
+  .quantity-adjust{display:flex; align-items:center; gap:10px; margin:10px 0;}
+  .quantity-adjust button{width:34px; height:34px; border:2px solid var(--line); background:var(--card); font-size:16px; cursor:pointer;}
+  .quantity-adjust span{font-weight:800; font-size:14px; min-width:60px; text-align:center;}
+  .err{color:var(--bad); font-size:12.5px; margin-top:8px;}
+  .nav-tabs{display:flex; margin:0 16px 6px; border-bottom:1px solid #ddd;}
+  .nav-tabs div{flex:1; text-align:center; padding:10px 0; font-size:12px; font-weight:700; color:var(--muted); cursor:pointer; text-transform:uppercase; letter-spacing:0.5px;}
+  .nav-tabs div.active{color:var(--ink); border-bottom:3px solid var(--ink);}
+  .screen{display:none;}
+  .screen.active{display:block;}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- ONBOARDING -->
+  <div class="screen" id="scr-onb">
+    <div class="onb">
+      <h1>NutriLens</h1>
+      <div class="sub">Antes de empezar, cuéntame de ti para calcular tus metas.</div>
+      <div class="row2">
+        <div class="field"><label>Edad</label><input type="number" id="f-age" placeholder="30"></div>
+        <div class="field"><label>Sexo</label>
+          <div class="seg" id="f-sex"><button data-v="m" class="active">Hombre</button><button data-v="f">Mujer</button></div>
+        </div>
+      </div>
+      <div class="row2">
+        <div class="field"><label>Altura (cm)</label><input type="number" id="f-height" placeholder="175"></div>
+        <div class="field"><label>Peso (kg)</label><input type="number" id="f-weight" placeholder="80"></div>
+      </div>
+      <div class="field">
+        <label>Nivel de actividad</label>
+        <select id="f-activity">
+          <option value="1.2">Sedentario (poco o nada de ejercicio)</option>
+          <option value="1.375">Ligero (1-3 días/sem)</option>
+          <option value="1.55" selected>Moderado (3-5 días/sem)</option>
+          <option value="1.725">Activo (6-7 días/sem)</option>
+          <option value="1.9">Muy activo (físico + ejercicio)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Objetivo</label>
+        <div class="seg" id="f-goal">
+          <button data-v="-500">Bajar peso</button>
+          <button data-v="0" class="active">Mantener</button>
+          <button data-v="300">Subir peso</button>
+        </div>
+      </div>
+      <button class="btn" onclick="finishOnboarding()">Calcular mis metas</button>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="screen" id="scr-main">
+    <div class="topbar">
+      <div>
+        <h1>NutriLens</h1>
+        <div class="date" id="today-date"></div>
+      </div>
+      <button class="iconbtn" onclick="fillProfileForm(); showScreen('scr-profile')">⚙️</button>
+    </div>
+
+    <div class="nav-tabs">
+      <div class="active" data-day="0" onclick="switchDay(0)">Hoy</div>
+      <div data-day="-1" onclick="switchDay(-1)">Ayer</div>
+    </div>
+
+    <div class="alert-box" id="alertBox"><b>Recomendación</b><span id="alertText"></span></div>
+
+    <div class="label-panel" id="labelPanel"></div>
+
+    <div class="log">
+      <h2>Registro</h2>
+      <div id="logList"></div>
+    </div>
+  </div>
+
+  <!-- PROFILE -->
+  <div class="screen" id="scr-profile">
+    <div class="onb">
+      <h1>Tu perfil</h1>
+      <div class="sub">Actualiza tus datos si algo cambió.</div>
+      <div class="row2">
+        <div class="field"><label>Edad</label><input type="number" id="p-age"></div>
+        <div class="field"><label>Sexo</label>
+          <div class="seg" id="p-sex"><button data-v="m">Hombre</button><button data-v="f">Mujer</button></div>
+        </div>
+      </div>
+      <div class="row2">
+        <div class="field"><label>Altura (cm)</label><input type="number" id="p-height"></div>
+        <div class="field"><label>Peso (kg)</label><input type="number" id="p-weight"></div>
+      </div>
+      <div class="field">
+        <label>Nivel de actividad</label>
+        <select id="p-activity">
+          <option value="1.2">Sedentario</option>
+          <option value="1.375">Ligero</option>
+          <option value="1.55">Moderado</option>
+          <option value="1.725">Activo</option>
+          <option value="1.9">Muy activo</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Objetivo</label>
+        <div class="seg" id="p-goal">
+          <button data-v="-500">Bajar</button>
+          <button data-v="0">Mantener</button>
+          <button data-v="300">Subir</button>
+        </div>
+      </div>
+      <button class="btn" onclick="saveProfile()">Guardar</button>
+      <button class="btn outline" onclick="showScreen('scr-main'); renderDashboard();">Volver</button>
+    </div>
+  </div>
+
+  <button class="fab" id="fabAdd" onclick="openAddModal()">+</button>
+</div>
+
+<!-- ADD FOOD MODAL -->
+<div class="overlay" id="overlay">
+  <div class="sheet">
+    <button class="close-x" onclick="closeAddModal()">✕</button>
+    <h2>Agregar alimento</h2>
+    <div class="tabbar">
+      <div class="active" data-pane="paneFoto" onclick="switchPane('paneFoto')">📷 Foto</div>
+      <div data-pane="paneManual" onclick="switchPane('paneManual')">✏️ Manual</div>
+    </div>
+
+    <div class="pane active" id="paneFoto">
+      <input type="file" accept="image/*" capture="environment" id="photoInput" onchange="onPhotoSelected(event)" style="margin-bottom:10px;">
+      <img id="photoPreview" class="preview">
+      <button class="btn" id="analyzeBtn" onclick="analyzePhoto()" disabled>Analizar foto</button>
+      <div id="photoResult"></div>
+    </div>
+
+    <div class="pane" id="paneManual">
+      <div class="field"><label>Describe qué comiste</label>
+        <input type="text" id="manualDesc" placeholder="ej. 2 tacos de bistec con tortilla de maíz">
+      </div>
+      <button class="btn" onclick="analyzeManual()">Estimar nutrición</button>
+      <div id="manualResult"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+let profile = null;
+let currentDayOffset = 0;
+let selectedFoodBase64 = null;
+let selectedFoodMedia = null;
+let pendingCandidate = null;
+let pendingQty = 1;
+
+const VIT_KEYS = [
+  {k:'vitamin_c_mg', label:'Vitamina C', unit:'mg'},
+  {k:'vitamin_d_mcg', label:'Vitamina D', unit:'mcg'},
+  {k:'vitamin_b12_mcg', label:'Vitamina B12', unit:'mcg'},
+  {k:'iron_mg', label:'Hierro', unit:'mg'},
+  {k:'calcium_mg', label:'Calcio', unit:'mg'},
+];
+
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function todayKey(offsetDays){
+  const d = new Date();
+  d.setDate(d.getDate() + (offsetDays||0));
+  return d.toISOString().slice(0,10);
+}
+
+// ---------- Segmented control helper ----------
+document.querySelectorAll('.seg').forEach(seg=>{
+  seg.addEventListener('click', e=>{
+    if(e.target.tagName === 'BUTTON'){
+      seg.querySelectorAll('button').forEach(b=>b.classList.remove('active'));
+      e.target.classList.add('active');
+    }
+  });
+});
+function segVal(segId){
+  const el = document.getElementById(segId).querySelector('button.active');
+  return el ? el.dataset.v : null;
+}
+function setSegVal(segId, val){
+  document.getElementById(segId).querySelectorAll('button').forEach(b=>{
+    b.classList.toggle('active', b.dataset.v === val);
+  });
+}
+
+// ---------- Init ----------
+async function init(){
+  document.getElementById('today-date').textContent = new Date().toLocaleDateString('es-MX', {weekday:'long', day:'numeric', month:'long'});
+  try{
+    const res = await window.storage.get('profile');
+    if(res && res.value){
+      profile = JSON.parse(res.value);
+      showScreen('scr-main');
+      renderDashboard();
+      return;
+    }
+  }catch(e){}
+  showScreen('scr-onb');
+}
+
+function calcTargets(p){
+  let bmr;
+  if(p.sex === 'm'){
+    bmr = 10*p.weight + 6.25*p.height - 5*p.age + 5;
+  }else{
+    bmr = 10*p.weight + 6.25*p.height - 5*p.age - 161;
+  }
+  const tdee = bmr * p.activity;
+  const calories = Math.round(tdee + p.goalAdj);
+  const protein = Math.round(p.weight * 1.8);
+  const fat = Math.round((calories*0.27)/9);
+  const carbs = Math.round((calories - protein*4 - fat*9)/4);
+  const fiber = Math.round(calories/1000*14);
+  const vitamin_c_mg = p.sex === 'm' ? 90 : 75;
+  const vitamin_d_mcg = 15;
+  const vitamin_b12_mcg = 2.4;
+  const iron_mg = p.sex === 'm' ? 8 : 18;
+  const calcium_mg = 1000;
+  return {calories, protein, carbs, fat, fiber, vitamin_c_mg, vitamin_d_mcg, vitamin_b12_mcg, iron_mg, calcium_mg};
+}
+
+function finishOnboarding(){
+  const age = parseFloat(document.getElementById('f-age').value);
+  const height = parseFloat(document.getElementById('f-height').value);
+  const weight = parseFloat(document.getElementById('f-weight').value);
+  const activity = parseFloat(document.getElementById('f-activity').value);
+  const sex = segVal('f-sex');
+  const goalAdj = parseFloat(segVal('f-goal'));
+  if(!age || !height || !weight){ alert('Falta llenar edad, altura o peso.'); return; }
+  profile = {age, height, weight, activity, sex, goalAdj};
+  profile.targets = calcTargets(profile);
+  window.storage.set('profile', JSON.stringify(profile)).catch(()=>{});
+  showScreen('scr-main');
+  renderDashboard();
+}
+
+function saveProfile(){
+  profile.age = parseFloat(document.getElementById('p-age').value);
+  profile.height = parseFloat(document.getElementById('p-height').value);
+  profile.weight = parseFloat(document.getElementById('p-weight').value);
+  profile.activity = parseFloat(document.getElementById('p-activity').value);
+  profile.sex = segVal('p-sex');
+  profile.goalAdj = parseFloat(segVal('p-goal'));
+  profile.targets = calcTargets(profile);
+  window.storage.set('profile', JSON.stringify(profile)).catch(()=>{});
+  showScreen('scr-main');
+  renderDashboard();
+}
+
+function fillProfileForm(){
+  document.getElementById('p-age').value = profile.age;
+  document.getElementById('p-height').value = profile.height;
+  document.getElementById('p-weight').value = profile.weight;
+  document.getElementById('p-activity').value = profile.activity;
+  setSegVal('p-sex', profile.sex);
+  setSegVal('p-goal', String(profile.goalAdj));
+}
+
+function switchDay(offset){
+  currentDayOffset = offset;
+  document.querySelectorAll('.nav-tabs div').forEach(d=>d.classList.toggle('active', parseInt(d.dataset.day)===offset));
+  document.getElementById('fabAdd').style.display = offset===0 ? 'block' : 'none';
+  renderDashboard();
+}
+
+async function getLog(offset){
+  try{
+    const res = await window.storage.get('log:' + todayKey(offset));
+    return res && res.value ? JSON.parse(res.value) : [];
+  }catch(e){ return []; }
+}
+async function saveLog(offset, entries){
+  await window.storage.set('log:' + todayKey(offset), JSON.stringify(entries));
+}
+
+function sumLog(entries){
+  const t = {calories:0, protein:0, carbs:0, fat:0, fiber:0, vitamin_c_mg:0, vitamin_d_mcg:0, vitamin_b12_mcg:0, iron_mg:0, calcium_mg:0};
+  entries.forEach(e=>{
+    Object.keys(t).forEach(k=>{ t[k] += (e[k]||0); });
+  });
+  return t;
+}
+
+function barRow(name, val, target, unit){
+  const pct = target>0 ? Math.min(100, Math.round(val/target*100)) : 0;
+  const over = val > target;
+  return `<div class="label-row"><span class="name">${name}</span><span class="val">${Math.round(val)} / ${Math.round(target)} ${unit}</span></div>
+  <div style="padding:0 14px 8px;"><div class="bar-mini ${over?'over':''}"><i style="width:${pct}%"></i></div></div>`;
+}
+
+async function renderDashboard(){
+  if(!profile) return;
+  const t = profile.targets;
+  const entries = await getLog(currentDayOffset);
+  const sum = sumLog(entries);
+  const panel = document.getElementById('labelPanel');
+
+  let vitRows = '';
+  VIT_KEYS.forEach(v=>{
+    vitRows += barRow(v.label, sum[v.k], t[v.k], v.unit);
+  });
+
+  panel.innerHTML = `
+    <div class="label-title">Datos del día</div>
+    <div class="label-sub">Cantidad por día · vs. tu meta</div>
+    <div class="label-row thick"><span class="name">Calorías</span><span class="val">${Math.round(sum.calories)} / ${t.calories} kcal</span></div>
+    ${barRow('Proteína', sum.protein, t.protein, 'g')}
+    ${barRow('Carbohidratos', sum.carbs, t.carbs, 'g')}
+    ${barRow('Grasa', sum.fat, t.fat, 'g')}
+    ${barRow('Fibra', sum.fiber, t.fiber, 'g')}
+    <div class="label-sub" style="border-top:4px solid var(--ink); margin-top:2px;">Vitaminas y minerales clave</div>
+    ${vitRows}
+  `;
+
+  const logList = document.getElementById('logList');
+  if(entries.length === 0){
+    logList.innerHTML = '<div class="empty">Sin registros todavía. Toca el botón + para agregar tu primer alimento.</div>';
+  }else{
+    logList.innerHTML = entries.map((e,i)=>`
+      <div class="entry">
+        <div class="info">
+          <div class="n">${e.name}${e.brand ? ' · '+e.brand : ''}</div>
+          <div class="p">${e.portion_desc || ''}</div>
+        </div>
+        <div style="display:flex; align-items:center;">
+          <div class="kcal">${Math.round(e.calories)} kcal</div>
+          <button class="del" onclick="deleteEntry(${i})">🗑</button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  renderAlert(sum, t, entries.length);
+}
+
+async function deleteEntry(i){
+  const entries = await getLog(currentDayOffset);
+  entries.splice(i,1);
+  await saveLog(currentDayOffset, entries);
+  renderDashboard();
+}
+
+function renderAlert(sum, t, count){
+  const box = document.getElementById('alertBox');
+  const hour = new Date().getHours();
+  if(count === 0 || currentDayOffset !== 0){ box.classList.remove('show'); return; }
+  const proteinPct = sum.protein / t.protein;
+  const fiberPct = sum.fiber / t.fiber;
+  if(hour >= 17 && (proteinPct < 0.6 || fiberPct < 0.5)){
+    let msgs = [];
+    if(proteinPct < 0.6) msgs.push(`te faltan ~${Math.round(t.protein - sum.protein)}g de proteína`);
+    if(fiberPct < 0.5) msgs.push(`vas bajo en fibra (${Math.round(sum.fiber)}/${t.fiber}g)`);
+    document.getElementById('alertText').textContent = msgs.join(' y ') + '. Considera pollo, huevo, atún, o leguminosas y verduras en tu próxima comida.';
+    box.classList.add('show');
+  }else{
+    box.classList.remove('show');
+  }
+}
+
+// ---------- Add modal ----------
+function openAddModal(){
+  document.getElementById('overlay').classList.add('show');
+  resetModal();
+}
+function closeAddModal(){
+  document.getElementById('overlay').classList.remove('show');
+}
+function resetModal(){
+  document.getElementById('photoInput').value = '';
+  document.getElementById('photoPreview').style.display = 'none';
+  document.getElementById('photoResult').innerHTML = '';
+  document.getElementById('manualDesc').value = '';
+  document.getElementById('manualResult').innerHTML = '';
+  document.getElementById('analyzeBtn').disabled = true;
+  selectedFoodBase64 = null;
+  switchPane('paneFoto');
+}
+function switchPane(id){
+  document.querySelectorAll('.tabbar div').forEach(d=>d.classList.toggle('active', d.dataset.pane===id));
+  document.querySelectorAll('.pane').forEach(p=>p.classList.toggle('active', p.id===id));
+}
+
+function onPhotoSelected(ev){
+  const file = ev.target.files[0];
+  if(!file) return;
+  selectedFoodMedia = file.type || 'image/jpeg';
+  const reader = new FileReader();
+  reader.onload = () => {
+    selectedFoodBase64 = reader.result.split(',')[1];
+    const img = document.getElementById('photoPreview');
+    img.src = reader.result;
+    img.style.display = 'block';
+    document.getElementById('analyzeBtn').disabled = false;
+  };
+  reader.readAsDataURL(file);
+}
+
+const NUTRITION_SYSTEM_PROMPT = `Eres un asistente experto en nutrición. Responde UNICAMENTE con JSON valido, sin texto adicional, sin backticks ni markdown.
+Analiza el alimento (por foto o descripcion) e identifica: nombre, marca si aplica o es visible, y estima la porcion.
+Da valores nutricionales estimados para esa porcion: calorias, proteina_g, carbohidratos_g, grasa_g, fibra_g, vitamina C (mg), vitamina D (mcg), vitamina B12 (mcg), hierro (mg), calcio (mg).
+Si hay duda razonable entre 2 a 4 alimentos o marcas distintas, responde status "ambiguous" con "question" breve y "options" (2-4 opciones, mismos campos).
+Si estas razonablemente seguro, responde status "identified" con "items" (un solo elemento).
+Estructura EXACTA:
+{"status":"identified"|"ambiguous","question":"string opcional","items":[ITEM] ,"options":[ITEM,ITEM]}
+Donde ITEM = {"name":string,"brand":string|null,"portion_desc":string,"calories":number,"protein_g":number,"carbs_g":number,"fat_g":number,"fiber_g":number,"vitamin_c_mg":number,"vitamin_d_mcg":number,"vitamin_b12_mcg":number,"iron_mg":number,"calcium_mg":number}
+Usa solo el campo items O options segun el status, nunca ambos. Todo en espanol.`;
+
+function parseJsonSafe(text){
+  let clean = text.trim().replace(/^```json/i,'').replace(/^```/,'').replace(/```$/,'').trim();
+  return JSON.parse(clean);
+}
+
+async function callClaude(messages){
+  const response = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({
+      model: "claude-sonnet-4-6",
+      max_tokens: 1000,
+      system: NUTRITION_SYSTEM_PROMPT,
+      messages: messages
+    })
+  });
+  const data = await response.json();
+  const textBlock = (data.content||[]).find(b=>b.type==='text');
+  if(!textBlock) throw new Error('Sin respuesta del modelo');
+  return parseJsonSafe(textBlock.text);
+}
+
+async function analyzePhoto(){
+  const resultDiv = document.getElementById('photoResult');
+  resultDiv.innerHTML = '<div class="loading">Analizando foto…</div>';
+  try{
+    const parsed = await callClaude([{
+      role: "user",
+      content: [
+        {type:"image", source:{type:"base64", media_type: selectedFoodMedia, data: selectedFoodBase64}},
+        {type:"text", text:"Identifica este alimento y su porcion."}
+      ]
+    }]);
+    renderCandidates(parsed, resultDiv);
+  }catch(e){
+    resultDiv.innerHTML = `<div class="err">No se pudo analizar la foto. Intenta de nuevo o usa entrada manual.</div>`;
+  }
+}
+
+async function analyzeManual(){
+  const desc = document.getElementById('manualDesc').value.trim();
+  const resultDiv = document.getElementById('manualResult');
+  if(!desc){ resultDiv.innerHTML = '<div class="err">Escribe qué comiste.</div>'; return; }
+  resultDiv.innerHTML = '<div class="loading">Estimando…</div>';
+  try{
+    const parsed = await callClaude([{role:"user", content: `Alimento consumido: ${desc}`}]);
+    renderCandidates(parsed, resultDiv);
+  }catch(e){
+    resultDiv.innerHTML = `<div class="err">No se pudo estimar. Intenta describirlo distinto.</div>`;
+  }
+}
+
+function renderCandidates(parsed, container){
+  const list = parsed.status === 'ambiguous' ? parsed.options : parsed.items;
+  if(!list || list.length===0){ container.innerHTML = '<div class="err">No se identificó el alimento.</div>'; return; }
+  let html = '';
+  if(parsed.status === 'ambiguous' && parsed.question){
+    html += `<div style="font-size:13px; font-weight:700; margin:10px 0 6px;">${parsed.question}</div>`;
+  }
+  list.forEach((item, idx)=>{
+    html += `<div class="option-card" onclick="selectCandidate(${JSON.stringify(JSON.stringify(item)).replace(/"/g,'&quot;')})">
+      <div class="n">${item.name}${item.brand ? ' · '+item.brand : ''}</div>
+      <div class="p">${item.portion_desc||''}</div>
+      <div class="k">${Math.round(item.calories)} kcal · P${Math.round(item.protein_g)}g · C${Math.round(item.carbs_g)}g · G${Math.round(item.fat_g)}g</div>
+    </div>`;
+  });
+  container.innerHTML = html;
+}
+
+function selectCandidate(itemJsonStr){
+  pendingCandidate = JSON.parse(itemJsonStr);
+  pendingQty = 1;
+  showQuantityConfirm();
+}
+
+function showQuantityConfirm(){
+  const c = pendingCandidate;
+  const html = `
+    <div style="border:2px solid var(--ink); padding:12px; margin-top:10px;">
+      <div class="n" style="font-weight:700;">${c.name}${c.brand ? ' · '+c.brand : ''}</div>
+      <div class="p" style="color:var(--muted); font-size:12px; margin-bottom:6px;">${c.portion_desc||''}</div>
+      <div class="quantity-adjust">
+        <button onclick="adjustQty(-0.25)">−</button>
+        <span id="qtyLabel">x${pendingQty}</span>
+        <button onclick="adjustQty(0.25)">+</button>
+      </div>
+      <div id="qtyKcal" class="k" style="margin-bottom:10px;">${Math.round(c.calories)} kcal</div>
+      <button class="btn" onclick="confirmAddEntry()">Agregar al registro</button>
+    </div>`;
+  const target = document.getElementById('photoResult').innerHTML.includes(c.name) || document.querySelector('#paneFoto').classList.contains('active')
+    ? 'photoResult' : 'manualResult';
+  document.getElementById(target).innerHTML += html;
+}
+function adjustQty(delta){
+  pendingQty = Math.max(0.25, Math.round((pendingQty+delta)*100)/100);
+  document.getElementById('qtyLabel').textContent = 'x'+pendingQty;
+  document.getElementById('qtyKcal').textContent = Math.round(pendingCandidate.calories*pendingQty)+' kcal';
+}
+
+async function confirmAddEntry(){
+  const c = pendingCandidate;
+  const entry = {
+    name: c.name,
+    brand: c.brand,
+    portion_desc: (pendingQty!==1 ? 'x'+pendingQty+' — ' : '') + (c.portion_desc||''),
+    calories: c.calories*pendingQty,
+    protein: c.protein_g*pendingQty,
+    carbs: c.carbs_g*pendingQty,
+    fat: c.fat_g*pendingQty,
+    fiber: c.fiber_g*pendingQty,
+    vitamin_c_mg: c.vitamin_c_mg*pendingQty,
+    vitamin_d_mcg: c.vitamin_d_mcg*pendingQty,
+    vitamin_b12_mcg: c.vitamin_b12_mcg*pendingQty,
+    iron_mg: c.iron_mg*pendingQty,
+    calcium_mg: c.calcium_mg*pendingQty,
+    time: new Date().toISOString()
+  };
+  const entries = await getLog(0);
+  entries.push(entry);
+  await saveLog(0, entries);
+  closeAddModal();
+  currentDayOffset = 0;
+  switchDay(0);
+}
+
+document.getElementById('scr-profile').addEventListener('transitionstart', ()=>{});
+window.addEventListener('DOMContentLoaded', init);
+document.getElementById('scr-profile').querySelector('#p-age');
+</script>
+</body>
+</html>

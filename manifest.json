@@ -1,0 +1,14 @@
+{
+  "name": "NutriLens — Registro nutricional inteligente",
+  "short_name": "NutriLens",
+  "description": "Registra tu comida con foto o texto, y da seguimiento a calorías, macros y vitaminas.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#15201A",
+  "theme_color": "#15201A",
+  "orientation": "portrait",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
